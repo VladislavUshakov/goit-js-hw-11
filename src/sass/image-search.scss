@@ -1,0 +1,50 @@
+.image-search {
+  text-align: center;
+}
+
+.search-form {
+  text-align: center;
+  margin: 20px;
+}
+
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.photo-card {
+  display: flex;
+  flex-direction: column;
+
+  max-width: calc((100% - 45px) / 4);
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+
+  img {
+    width: 100%;
+    height: 210px;
+    object-fit: cover;
+  }
+
+  .info {
+    display: flex;
+
+    .info-item {
+      text-align: center;
+    }
+  }
+}
+
+.load-more {
+  margin: 20px;
+  padding: 10px 40px;
+  background-color: aqua;
+  border: none;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+  border-radius: 5px;
+
+  &:hover,
+  &:focus {
+    background-color: aquamarine;
+  }
+}
