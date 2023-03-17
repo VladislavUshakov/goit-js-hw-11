@@ -1,6 +1,6 @@
 const axios = require('axios/dist/browser/axios.cjs');
 
-const params = {
+const reqParams = {
   q: '',
   key: '34239282-bbeea62304f42d8ced9502c1f',
   image_type: 'photo',
@@ -12,38 +12,41 @@ const params = {
 
 export class PixabayApi {
   constructor() {
-    this.params = params;
-    this.responseItems = [];
+    this.reqParams = reqParams;
+    this.resElements = [];
+    this.totalElements = null;
   }
 
   set query(text) {
-    this.params.q = text;
+    this.reqParams.q = text;
   }
 
   get query() {
-    return this.params.q;
+    return this.reqParams.q;
   }
 
   set page(number) {
-    this.params.page = number;
-  }
-
-  get res() {
-    return this.responseItems;
+    this.reqParams.page = number;
   }
 
   async getData() {
     try {
       const res = await axios.get(`https://pixabay.com/api/`, {
-        params: this.params,
+        params: this.reqParams,
       });
 
-      this.params.page += 1;
-      this.responseItems = res.data.hits;
+      this.reqParams.page += 1;
+      this.resElements = res.data.hits;
+      this.totalElements = res.data.totalHits;
     } catch (error) {
-      this.params.page = 1;
-      this.responseItems = [];
+      this.reset();
       console.log(error);
     }
+  }
+
+  reset() {
+    this.reqParams.page = 1;
+    this.resElements = [];
+    this.totalElements = null;
   }
 }
