@@ -13,6 +13,8 @@ const refs = {
 const apiService = new PixabayApi();
 const lightbox = new SimpleLightbox('.gallery a');
 
+let isEndElement = null;
+
 refs.searchForm.addEventListener('submit', searchHandler);
 refs.loadMoreBtn.addEventListener('click', loadMoreHandler);
 
@@ -20,7 +22,6 @@ async function searchHandler(e) {
   e.preventDefault();
 
   const validationStatus = queryValidation(e);
-  let isEndElement = null;
 
   if (!validationStatus) {
     return;
