@@ -1,102 +1,88 @@
-import { PixabayApi } from './api/pixabayApi';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
-import SimpleLightbox from 'simplelightbox';
 
-import 'simplelightbox/dist/simple-lightbox.min.css';
+import { PixabayApi } from './js/api/pixabayApi';
+import { Button } from './js/components/button';
+import { Form } from './js/components/form';
+import { Gallery } from './js/components/gallery';
+import { Validator } from './js/services/validation';
+
+const apiService = new PixabayApi({
+  key: '34239282-bbeea62304f42d8ced9502c1f',
+  image_type: 'photo',
+  orientation: 'horizontal',
+  safesearch: true,
+  per_page: 40,
+});
+const validationService = new Validator();
 
 const refs = {
-  searchForm: document.querySelector(`.search-form`),
-  gallery: document.querySelector(`.gallery`),
-  loadMoreBtn: document.querySelector(`.load-more`),
+  searchForm: new Form('.search-form', searchHandler),
+  gallery: new Gallery('.gallery', renderMarkup),
+  loadMoreBtn: new Button('.load-more', loadMoreHandler),
 };
 
-const apiService = new PixabayApi();
-const lightbox = new SimpleLightbox('.gallery a');
-
-let isEndElement = null;
-
-refs.searchForm.addEventListener('submit', searchHandler);
-refs.loadMoreBtn.addEventListener('click', loadMoreHandler);
+const requestParams = {
+  q: '',
+  page: 1,
+};
 
 async function searchHandler(e) {
   e.preventDefault();
+  refs.loadMoreBtn.hide();
 
-  const validationStatus = queryValidation(e);
+  const currentQuery = e.target.elements.searchQuery.value;
+  const valid = validationService.validation(currentQuery, requestParams.q);
 
-  if (!validationStatus) {
+  if (!valid) {
     return;
   }
 
-  apiService.reset();
-  await apiService.getData();
+  let isMoreElementsOnServer = null;
 
-  if (apiService.resElements.length === 0) {
+  requestParams.q = currentQuery;
+  requestParams.page = 1;
+
+  const response = await sendRequest(requestParams);
+
+  refs.gallery.itemsOnServer = response.totalHits;
+
+  if (response.totalHits === 0) {
     Notify.failure(
       'Sorry, there are no images matching your search query. Please try again.'
     );
 
-    refs.gallery.innerHTML = '';
-    refs.loadMoreBtn.classList.add('is-hidden');
-
+    refs.gallery.clear();
     return;
+  } else {
+    Notify.success(`Hooray! We found ${response.totalHits} images.`);
   }
 
-  Notify.success(`Hooray! We found ${apiService.totalElements} images.`);
+  refs.gallery.replaceMarkup(response.hits);
 
-  replaceMarkup(apiService.resElements);
+  lastItemHendler();
 
-  isEndElement = checkOfEndElement();
-  if (isEndElement) {
-    Notify.failure(
-      "We're sorry, but you've reached the end of search results."
-    );
-
-    refs.loadMoreBtn.classList.add('is-hidden');
-    return;
-  }
-
-  refs.loadMoreBtn.classList.remove('is-hidden');
+  refs.loadMoreBtn.show();
 }
 
 async function loadMoreHandler(e) {
   e.preventDefault();
 
-  refs.loadMoreBtn.classList.add('is-hidden');
+  refs.loadMoreBtn.hide();
 
-  await apiService.getData();
+  requestParams.page += 1;
 
-  addMarkup(apiService.resElements);
+  const response = await sendRequest(requestParams);
 
-  isEndElement = checkOfEndElement();
-  if (isEndElement) {
-    Notify.failure(
-      "We're sorry, but you've reached the end of search results."
-    );
+  refs.gallery.addMarkup(response.hits);
 
-    return;
-  }
+  lastItemHendler();
 
-  refs.loadMoreBtn.classList.remove('is-hidden');
-}
-
-function addMarkup(data) {
-  const markup = renderMarkup(data);
-  refs.gallery.insertAdjacentHTML('beforeend', markup);
-  lightbox.refresh();
-
-  autoScroll();
-}
-
-function replaceMarkup(data) {
-  const markup = renderMarkup(data);
-
-  refs.gallery.innerHTML = markup;
-  lightbox.refresh();
+  refs.loadMoreBtn.show();
 }
 
 function renderMarkup(data) {
   let markup = '';
-  data.map(
+  data.forEach(
     ({
       webformatURL,
       largeImageURL,
@@ -129,36 +115,20 @@ function renderMarkup(data) {
   return markup;
 }
 
-function queryValidation(e) {
-  const currentQuery = e.target.elements.searchQuery.value.trim().toLowerCase();
-  const { q: previousQuery } = apiService.reqParams;
-
-  if (currentQuery != '' && currentQuery != previousQuery) {
-    apiService.reqParams.q = currentQuery;
-
-    return true;
+async function sendRequest(requestParams) {
+  try {
+    return await apiService.getData(requestParams);
+  } catch (error) {
+    console.log(error);
   }
-
-  return false;
 }
 
-function checkOfEndElement() {
-  const quantityGalleryEls = refs.gallery.childElementCount;
-  const { totalElements } = apiService;
+function lastItemHendler() {
+  if (!refs.gallery.isMoreItems) {
+    Notify.failure(
+      "We're sorry, but you've reached the end of search results."
+    );
 
-  if (quantityGalleryEls === totalElements) {
-    return true;
+    return;
   }
-
-  return false;
-}
-
-function autoScroll() {
-  const { height: cardHeight } =
-    refs.gallery.firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
 }
