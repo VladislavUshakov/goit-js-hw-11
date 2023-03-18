@@ -37,8 +37,6 @@ async function searchHandler(e) {
     return;
   }
 
-  let isMoreElementsOnServer = null;
-
   requestParams.q = currentQuery;
   requestParams.page = 1;
 
